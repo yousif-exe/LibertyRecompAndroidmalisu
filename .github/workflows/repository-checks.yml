@@ -2,7 +2,7 @@ name: Repository setup and desktop builds
 
 on:
   push:
-    branches: [main]
+    branches: [main, experiment/mali-g720-system-vulkan]
   pull_request:
   workflow_dispatch:
 
