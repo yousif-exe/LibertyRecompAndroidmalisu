@@ -128,17 +128,22 @@ std::unique_ptr<VulkanDevice> VulkanDevice::CreateIfSupported(
         properties.deviceName);
     return nullptr;
   }
-  if (with_native_shader_support &&
-      (!supported_features.shaderClipDistance || !supported_features.sampleRateShading)) {
-    // These capabilities are declared statically by the cached title vertex
-    // shaders and the per-sample fullscreen conversion shaders, respectively.
-    // A draw-time flag cannot make either shader interface legal without them.
+  if (with_native_shader_support && !supported_features.sampleRateShading) {
+    // The fullscreen conversion shader uses sample-rate shading. Unlike clip
+    // distances, this is not currently emulated by the native shader translator.
     REXLOG_WARN(
-        "Vulkan device '{}' lacks native shader capabilities: shaderClipDistance={}, "
-        "sampleRateShading={}",
-        properties.deviceName, supported_features.shaderClipDistance != VK_FALSE,
-        supported_features.sampleRateShading != VK_FALSE);
+        "Vulkan device '{}' doesn't support sampleRateShading required by Liberty native shaders",
+        properties.deviceName);
     return nullptr;
+  }
+  if (with_native_shader_support && !supported_features.shaderClipDistance) {
+    // The SPIR-V translator omits ClipDistance built-ins when the feature is
+    // unavailable. Custom clipping is therefore best-effort on these devices:
+    // geometry outside user-defined clip planes may remain visible.
+    REXLOG_WARN(
+        "Vulkan device '{}' lacks shaderClipDistance; native shaders will use the "
+        "clip-distance fallback (custom clipping may be visually incorrect)",
+        properties.deviceName);
   }
 
   if ((with_gpu_emulation || with_native_shader_support) &&
