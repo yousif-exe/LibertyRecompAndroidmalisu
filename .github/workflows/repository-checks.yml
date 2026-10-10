@@ -122,7 +122,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     env:
-      ANDROID_NDK: ${{ runner.temp }}/android-sdk/ndk/27.2.12479018
+      ANDROID_NDK: ${{ runner.temp }}/android-sdk/ndk/26.1.10909125
     steps:
       - uses: actions/checkout@v4
         with:
@@ -135,8 +135,8 @@ jobs:
       - uses: android-actions/setup-android@v3
       - name: Install Android NDK
         run: |
-          sdkmanager "platforms;android-34" "ndk;27.2.12479018"
-          echo "ANDROID_NDK=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+          sdkmanager "platforms;android-34" "ndk;26.1.10909125"
+          echo "ANDROID_NDK=$ANDROID_HOME/ndk/26.1.10909125" >> "$GITHUB_ENV"
       - name: Install Linux build prerequisites
         run: |
           sudo apt-get update
