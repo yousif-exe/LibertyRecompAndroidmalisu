@@ -384,7 +384,16 @@ def setup(root, patches, jobs=4, *, bootstrap=True):
         if data is None:
             path.unlink()
         else:
-            path.write_bytes(data)
+            # Restore through Git rather than writing blob bytes directly.
+            # On Windows, core.autocrlf/checkout filters may otherwise turn a
+            # clean baseline into a modified worktree and block submodule checkout.
+            source = next(
+                source_path(parent, module['path'])
+                for parent, module in modules
+                if path.is_relative_to(source_path(parent, module['path']))
+            )
+            relative = path.relative_to(source).as_posix()
+            git(source, 'restore', '--worktree', '--', relative)
     git(root, 'submodule', 'sync', '--recursive', capture=False)
     git(root, '-c', 'submodule.recurse=false', 'submodule', 'update', '--init',
         '--recursive', '--checkout', '--depth', '1', '--jobs', str(jobs), capture=False)
