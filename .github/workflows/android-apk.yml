@@ -35,8 +35,14 @@ jobs:
         shell: pwsh
         run: |
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;29.0.14206865"
-          "ANDROID_HOME=$env:ANDROID_HOME" >> $env:GITHUB_ENV
-          "ANDROID_NDK=$($env:ANDROID_HOME -replace '\\','/')/ndk/29.0.14206865" >> $env:GITHUB_ENV
+      - name: Normalize Windows paths for Git Bash build scripts
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=$(cygpath -u "$ANDROID_HOME")" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$(cygpath -u "$ANDROID_HOME")" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK=$(cygpath -u "$ANDROID_HOME")/ndk/29.0.14206865" >> "$GITHUB_ENV"
+          echo "JAVA_HOME=$(cygpath -u "$JAVA_HOME")" >> "$GITHUB_ENV"
+          echo "NDK_VER=29.0.14206865" >> "$GITHUB_ENV"
       - name: Install CMake and Ninja
         shell: pwsh
         run: python -m pip install "cmake>=3.29,<5" ninja
