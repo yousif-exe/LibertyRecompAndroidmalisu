@@ -1,7 +1,8 @@
 name: Android Mali test APK
 
 on:
-  pull_request:
+  push:
+    branches: [experiment/mali-g720-system-vulkan]
   workflow_dispatch:
 
 permissions:
