@@ -387,11 +387,14 @@ def setup(root, patches, jobs=4, *, bootstrap=True):
             # Restore through Git rather than writing blob bytes directly.
             # On Windows, core.autocrlf/checkout filters may otherwise turn a
             # clean baseline into a modified worktree and block submodule checkout.
-            source = next(
+            candidates = [
                 source_path(parent, module['path'])
                 for parent, module in modules
                 if path.is_relative_to(source_path(parent, module['path']))
-            )
+            ]
+            if not candidates:
+                raise SetupError(f'Cannot locate dependency worktree for managed file: {path}')
+            source = max(candidates, key=lambda candidate: len(candidate.parts))
             relative = path.relative_to(source).as_posix()
             git(source, 'restore', '--worktree', '--', relative)
     git(root, 'submodule', 'sync', '--recursive', capture=False)
