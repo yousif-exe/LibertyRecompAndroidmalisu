@@ -4,7 +4,7 @@ name: macOS Build
 
 on:
   push:
-    branches: [main, beta]
+    branches: [main, beta, 'experiment/mali-g720-system-vulkan']
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
