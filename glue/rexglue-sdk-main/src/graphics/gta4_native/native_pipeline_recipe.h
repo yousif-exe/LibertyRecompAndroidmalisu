@@ -147,6 +147,13 @@ class NativePipelineRecipe {
 
   static std::optional<NativePipelineRecipe> Capture(const VkGraphicsPipelineCreateInfo& info,
                                                      uint32_t specialization) {
+#if defined(__ANDROID__)
+    // The Mali Android driver crashes inside its shader compiler when these
+    // speculative recipe jobs create some GTA IV native pipelines. Do not
+    // enqueue recipe-based compilation on Android; the normal synchronous
+    // Vulkan pipeline path below remains available on first use.
+    return std::nullopt;
+#endif
     if (info.flags || info.renderPass || info.pTessellationState || !info.pStages ||
         !info.stageCount || info.stageCount > 2 ||
         !info.pNext || !info.pVertexInputState || !info.pInputAssemblyState ||
@@ -244,6 +251,11 @@ class NativePipelineRecipe {
 
   VkResult Create(PFN_vkCreateGraphicsPipelines create, VkDevice device, VkPipelineCache cache,
                   VkPipeline* pipeline) const {
+#if defined(__ANDROID__)
+    // Also reject recipes restored from an older on-disk cache. They are only
+    // an optimization; the draw path can build the exact pipeline directly.
+    return VK_ERROR_FEATURE_NOT_PRESENT;
+#endif
     if (!Valid() || !layout || !modules[0] || (data.stage_count == 2 && !modules[1])) {
       return VK_ERROR_INITIALIZATION_FAILED;
     }

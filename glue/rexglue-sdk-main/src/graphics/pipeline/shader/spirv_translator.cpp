@@ -522,7 +522,7 @@ void SpirvShaderTranslator::StartTranslation() {
           builder_->createVariable(spv::NoPrecision, spv::StorageClassFunction,
                                    type_rectangle_position_array, "xe_var_rectangle_position");
       uint32_t rectangle_clip_distance_count =
-          GetSpirvShaderModification().GetVertexClipDistanceCount();
+          features_.clip_distance ? GetSpirvShaderModification().GetVertexClipDistanceCount() : 0;
       if (rectangle_clip_distance_count) {
         spv::Id type_rectangle_clip_distance = builder_->makeArrayType(
             type_float_, builder_->makeUintConstant(rectangle_clip_distance_count), 0);
@@ -533,7 +533,7 @@ void SpirvShaderTranslator::StartTranslation() {
             "xe_var_rectangle_clip_distance");
       }
       uint32_t rectangle_cull_distance_count =
-          GetSpirvShaderModification().GetVertexCullDistanceCount();
+          features_.cull_distance ? GetSpirvShaderModification().GetVertexCullDistanceCount() : 0;
       if (rectangle_cull_distance_count) {
         spv::Id type_rectangle_cull_distance = builder_->makeArrayType(
             type_float_, builder_->makeUintConstant(rectangle_cull_distance_count), 0);
@@ -707,8 +707,10 @@ std::vector<uint8_t> SpirvShaderTranslator::CompleteTranslation() {
       // vertex shader 3 times (for all source vertices), then choose or
       // synthesize the output for the current host strip vertex.
       Modification shader_modification = GetSpirvShaderModification();
-      uint32_t clip_distance_count = shader_modification.GetVertexClipDistanceCount();
-      uint32_t cull_distance_count = shader_modification.GetVertexCullDistanceCount();
+      uint32_t clip_distance_count =
+          features_.clip_distance ? shader_modification.GetVertexClipDistanceCount() : 0;
+      uint32_t cull_distance_count =
+          features_.cull_distance ? shader_modification.GetVertexCullDistanceCount() : 0;
 
       CompleteVertexOrTessEvalShaderInMain();
 
@@ -1737,8 +1739,10 @@ void SpirvShaderTranslator::StartVertexOrTessEvalShaderBeforeMain() {
   }
 
   // Create the gl_PerVertex output for used system outputs.
-  uint32_t clip_distance_count = shader_modification.GetVertexClipDistanceCount();
-  uint32_t cull_distance_count = shader_modification.GetVertexCullDistanceCount();
+  uint32_t clip_distance_count =
+          features_.clip_distance ? shader_modification.GetVertexClipDistanceCount() : 0;
+  uint32_t cull_distance_count =
+      features_.cull_distance ? shader_modification.GetVertexCullDistanceCount() : 0;
   std::vector<spv::Id> struct_per_vertex_members;
   struct_per_vertex_members.reserve(kOutputPerVertexMemberCountMax);
   struct_per_vertex_members.push_back(type_float4_);
@@ -2532,7 +2536,9 @@ void SpirvShaderTranslator::CompleteVertexOrTessEvalShaderInMain() {
   uint32_t clip_distance_next_component = 0;
   uint32_t cull_distance_next_component = 0;
   // Clip against user clip planes.
-  if (shader_modification.vertex.user_clip_plane_count) {
+  if (shader_modification.vertex.user_clip_plane_count &&
+      (shader_modification.vertex.user_clip_plane_cull ? features_.cull_distance
+                                                        : features_.clip_distance)) {
     uint32_t output_per_vertex_member_clip_or_cull_distance =
         shader_modification.vertex.user_clip_plane_cull ? output_per_vertex_member_cull_distance_
                                                         : output_per_vertex_member_clip_distance_;
@@ -2758,10 +2764,12 @@ void SpirvShaderTranslator::CompleteVertexOrTessEvalShaderInMain() {
           output_point_coordinates_);
     }
 
-    bool point_recalculate_clip_distances = shader_modification.vertex.user_clip_plane_count &&
+    bool point_recalculate_clip_distances = features_.clip_distance &&
+                                            shader_modification.vertex.user_clip_plane_count &&
                                             !shader_modification.vertex.user_clip_plane_cull &&
                                             shader_modification.vertex.point_ps_ucp_mode >= 2;
-    bool point_recalculate_cull_distances = shader_modification.vertex.user_clip_plane_count &&
+    bool point_recalculate_cull_distances = features_.cull_distance &&
+                                            shader_modification.vertex.user_clip_plane_count &&
                                             shader_modification.vertex.user_clip_plane_cull &&
                                             shader_modification.vertex.point_ps_ucp_mode >= 3;
     if (point_recalculate_clip_distances || point_recalculate_cull_distances) {

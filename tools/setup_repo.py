@@ -215,7 +215,7 @@ class Patches:
                 raise SetupError(f'Duplicate patched dependency: {entry["path"]}')
             paths.add(entry['path'])
             patch = source_path(self.directory, entry['patch'])
-            if hashlib.sha256(patch.read_bytes()).hexdigest() != entry['sha256']:
+            if digest(patch.read_bytes()) != entry['sha256']:
                 raise SetupError(f'Dependency patch checksum mismatch: {patch}')
             names = set()
             for item in entry['files']:
@@ -384,7 +384,19 @@ def setup(root, patches, jobs=4, *, bootstrap=True):
         if data is None:
             path.unlink()
         else:
-            path.write_bytes(data)
+            # Restore through Git rather than writing blob bytes directly.
+            # On Windows, core.autocrlf/checkout filters may otherwise turn a
+            # clean baseline into a modified worktree and block submodule checkout.
+            candidates = [
+                source_path(parent, module['path'])
+                for parent, module in modules
+                if path.is_relative_to(source_path(parent, module['path']))
+            ]
+            if not candidates:
+                raise SetupError(f'Cannot locate dependency worktree for managed file: {path}')
+            source = max(candidates, key=lambda candidate: len(candidate.parts))
+            relative = path.relative_to(source).as_posix()
+            git(source, 'restore', '--worktree', '--', relative)
     git(root, 'submodule', 'sync', '--recursive', capture=False)
     git(root, '-c', 'submodule.recurse=false', 'submodule', 'update', '--init',
         '--recursive', '--checkout', '--depth', '1', '--jobs', str(jobs), capture=False)
