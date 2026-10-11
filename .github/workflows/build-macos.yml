@@ -61,7 +61,7 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
       - name: Install build tools
-        run: brew install cmake ninja pkg-config llvm openssl@3 vulkan-loader
+        run: brew install cmake ninja pkg-config llvm openssl@3 vulkan-loader spirv-cross glslang
 
       - name: Show toolchain versions
         run: |
@@ -69,6 +69,8 @@ jobs:
           xcodebuild -version
           xcrun --sdk macosx --show-sdk-version
           cmake --version
+          spirv-cross --version
+          glslangValidator --version
           "$(brew --prefix llvm)/bin/clang++" --version
           uname -m
 
